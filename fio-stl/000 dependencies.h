@@ -307,7 +307,7 @@ FIO_MAP Ordering & Naming Shortcut
 #define FIO_WEBSOCKET_PARSER
 #endif
 
-#if defined(FIO_POLL) || defined(FIO_SERVER)
+#if defined(FIO_POLL) || defined(FIO_SERVER) || defined(FIO_PUBSUB)
 #undef FIO_SOCK
 #define FIO_SOCK
 #endif
@@ -420,7 +420,8 @@ FIO_MAP Ordering & Naming Shortcut
 #define FIO_SIGNAL
 #endif
 
-#if defined(FIO_MEMORY_NAME) || defined(FIO_QUEUE)
+#if defined(FIO_MEMORY_NAME) || defined(FIO_QUEUE) ||                          \
+    (defined(DEBUG) && defined(FIO_STATE))
 #undef FIO_THREADS
 #define FIO_THREADS
 #endif

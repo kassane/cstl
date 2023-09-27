@@ -470,7 +470,7 @@ Logging Defaults (no-op)
 #define FIO_LOG_LEVEL_GET() (0)
 
 // clang-format off
-#define FIO___LOG_PRINT_LEVEL(level, ...) do { if ((level) <= FIO_LOG_LEVEL_GET()) FIO_LOG2STDERR(__VA_ARGS__); } while (0)
+#define FIO___LOG_PRINT_LEVEL(level, ...) do { if ((level) <= FIO_LOG_LEVEL_GET()) {FIO_LOG2STDERR(__VA_ARGS__);} } while (0)
 #define FIO_LOG_WRITE(...)    FIO_LOG2STDERR("(" FIO__FILE__ ":" FIO_MACRO2STR(__LINE__) "): " __VA_ARGS__)
 #define FIO_LOG_FATAL(...)    FIO___LOG_PRINT_LEVEL(FIO_LOG_LEVEL_FATAL, "\x1B[1m\x1B[7mFATAL:\x1B[0m    " __VA_ARGS__)
 #define FIO_LOG_ERROR(...)    FIO___LOG_PRINT_LEVEL(FIO_LOG_LEVEL_ERROR, "\x1B[1mERROR:\x1B[0m    " __VA_ARGS__)
@@ -1417,6 +1417,59 @@ FIO_IFUNC intptr_t fio_ct_max(intptr_t a_, intptr_t b_) {
   const uintptr_t a = a_, b = b_;
   return (
       intptr_t)fio_ct_if_bool(((a - b) >> ((sizeof(a) << 3) - 1)) & 1, b, a);
+}
+
+/* *****************************************************************************
+Constant-Time Comparison Test
+***************************************************************************** */
+
+/** A timing attack resistant memory comparison function. */
+FIO_SFUNC _Bool fio_ct_is_eq(const void *a_, const void *b_, size_t bytes) {
+  uint64_t ua[8] FIO_ALIGN(16);
+  uint64_t ub[8] FIO_ALIGN(16);
+  uint64_t flag = 0;
+  const char *a = (const char *)a_;
+  const char *b = (const char *)b_;
+  if (bytes & 63) {
+    for (size_t i = 0; i < 8; ++i)
+      ua[i] = ub[i] = 0;
+    /* all these if statements can run in parallel */
+    if (bytes & 32) {
+      fio_memcpy32(ua, a);
+      fio_memcpy32(ub, b);
+    }
+    if (bytes & 16) {
+      fio_memcpy16(ua + 4, a + (bytes & 32));
+      fio_memcpy16(ub + 4, b + (bytes & 32));
+    }
+    if (bytes & 8) {
+      fio_memcpy8(ua + 6, a + (bytes & 48));
+      fio_memcpy8(ub + 6, b + (bytes & 48));
+    }
+    if (bytes & 4) {
+      fio_memcpy4((uint32_t *)ua + 14, a + (bytes & 56));
+      fio_memcpy4((uint32_t *)ub + 14, b + (bytes & 56));
+    }
+    if (bytes & 2) {
+      fio_memcpy2((uint16_t *)ua + 30, a + (bytes & 60));
+      fio_memcpy2((uint16_t *)ub + 30, b + (bytes & 60));
+    }
+    if (bytes & 1) {
+      ((char *)ua)[62] = *(a + (bytes & 62));
+      ((char *)ub)[62] = *(b + (bytes & 62));
+    }
+    for (size_t i = 0; i < 8; ++i)
+      flag |= ua[i] ^ ub[i];
+  }
+  for (size_t consumes = 63; consumes < bytes; consumes += 64) {
+    fio_memcpy64(ua, a);
+    fio_memcpy64(ub, b);
+    for (size_t i = 0; i < 8; ++i)
+      flag |= ua[i] ^ ub[i];
+    a += 64;
+    b += 64;
+  }
+  return !flag;
 }
 
 /* *****************************************************************************

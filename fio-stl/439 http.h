@@ -983,7 +983,7 @@ static int fio_http1_on_expect(void *udata) {
   c->h = h;
   fio_undup(c->io);
   const fio_buf_info_s response =
-      FIO_BUF_INFO1("HTTP/1.1 100 Continue\r\n\r\n");
+      FIO_BUF_INFO1((char *)"HTTP/1.1 100 Continue\r\n\r\n");
   fio_write2(c->io, .buf = response.buf, .len = response.len, .copy = 0);
   return 0; /* TODO?: improve support for `expect` headers? */
 response_sent:
@@ -1058,7 +1058,7 @@ FIO_SFUNC void fio___http1_accept_on_data(fio_s *io) {
   size_t r = fio_read(io, c->buf + c->len, c->capa - c->len);
   if (!r) /* nothing happened */
     return;
-  c->len = r;
+  c->len = (uint32_t)r;
   if (prior_knowledge.buf[0] != c->buf[0] ||
       FIO_MEMCMP(
           prior_knowledge.buf,
@@ -1284,16 +1284,16 @@ upgraded:
   {
     const size_t pr_i = fio_http_is_websocket(c->h) ? FIO___HTTP_PROTOCOL_WS
                                                     : FIO___HTTP_PROTOCOL_SSE;
-    fio_protocol_set(
-        c->io,
-        &(FIO_PTR_FROM_FIELD(fio___http_protocol_s, settings, c->settings)
-              ->state[pr_i]
-              .protocol));
     fio_http_controller_set(
         c->h,
         &(FIO_PTR_FROM_FIELD(fio___http_protocol_s, settings, c->settings)
               ->state[pr_i]
               .controller));
+    fio_protocol_set(
+        c->io,
+        &(FIO_PTR_FROM_FIELD(fio___http_protocol_s, settings, c->settings)
+              ->state[pr_i]
+              .protocol));
     if (pr_i == FIO___HTTP_PROTOCOL_SSE) {
       fio_str_info_s last_id =
           fio_http_request_header(c->h,

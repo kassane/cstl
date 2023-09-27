@@ -268,8 +268,8 @@ FIO_SFUNC void fio___cli_ary_destroy(fio___cli_ary_s *a) {
     return;
   for (size_t i = 0; i < a->w; ++i)
     fio___cli_str_destroy(a->ary + i);
-  FIO_MEM_FREE_(a->ary, sizeof(*a->ary) * a->capa);
   FIO___LEAK_COUNTER_ON_FREE(fio_cli_ary);
+  FIO_MEM_FREE_(a->ary, sizeof(*a->ary) * a->capa);
   *a = (fio___cli_ary_s){0};
 }
 FIO_SFUNC uint32_t fio___cli_ary_new_index(fio___cli_ary_s *a) {
@@ -720,7 +720,7 @@ SFUNC void fio_cli_start FIO_NOOP(int argc,
     if (key.buf[0] != '-')
       goto process_unnamed;
     /* --help / -h / -? */
-    if ((key.len == 2 && (key.buf[1] == 'h' || key.buf[1] == '?')) ||
+    if ((key.len == 2 && ((key.buf[1] | 32) == 'h' || key.buf[1] == '?')) ||
         (key.len == 5 &&
          (fio_buf2u32u(key.buf + 1) | 0x20202020UL) == help_value32) ||
         (key.len == 6 && key.buf[1] == '-' &&
@@ -815,8 +815,8 @@ FIO_IFUNC fio_str_info_s fio___cli_write2line(fio_str_info_s d,
     FIO___LEAK_COUNTER_ON_ALLOC(fio_cli_help_writer);
     FIO_MEMCPY(tmp, d.buf, d.len);
     if (!static_memory) {
-      FIO_MEM_FREE_(d.buf, d.capa);
       FIO___LEAK_COUNTER_ON_FREE(fio_cli_help_writer);
+      FIO_MEM_FREE_(d.buf, d.capa);
     }
     d.capa = new_capa;
     d.buf = tmp;
@@ -847,8 +847,8 @@ FIO_SFUNC fio_str_info_s fio___cli_write2line_finalize(fio_str_info_s d,
       FIO___LEAK_COUNTER_ON_ALLOC(fio_cli_help_writer);
       FIO_MEMCPY(tmp, d.buf, d.len);
       if (!static_memory) {
-        FIO_MEM_FREE_(d.buf, d.capa);
         FIO___LEAK_COUNTER_ON_FREE(fio_cli_help_writer);
+        FIO_MEM_FREE_(d.buf, d.capa);
       }
       static_memory = 0;
       pos = tmp + (pos - d.buf);
@@ -990,8 +990,8 @@ FIO_SFUNC void fio___cli_print_help(void) {
                                        help_org_state.buf == help.buf);
   fwrite(help.buf, 1, help.len, stdout);
   if (help_org_state.buf != help.buf) {
-    FIO_MEM_FREE_(help.buf, help.capa);
     FIO___LEAK_COUNTER_ON_FREE(fio_cli_help_writer);
+    FIO_MEM_FREE_(help.buf, help.capa);
   }
   fio_cli_end();
   exit(0);
