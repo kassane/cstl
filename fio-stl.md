@@ -3838,6 +3838,8 @@ typedef enum {
   FIO_CALL_IN_CHILD,
   /** Called by the master process after spawning a worker (after forking). */
   FIO_CALL_IN_MASTER,
+  /** Called by each worker thread in a Server Async queue as it starts. */
+  FIO_CALL_ON_WORKER_THREAD_START,
   /** Called every time a *Worker* process starts. */
   FIO_CALL_ON_START,
   /** Reserved for internal use. */
@@ -3867,6 +3869,8 @@ typedef enum {
   FIO_CALL_ON_PARENT_CRUSH,
   /** Called by the parent (master) after a worker process crashed. */
   FIO_CALL_ON_CHILD_CRUSH,
+  /** Called by each worker thread in a Server Async queue as it ends. */
+  FIO_CALL_ON_WORKER_THREAD_END,
   /** Called just before finishing up (both on child and parent processes). */
   FIO_CALL_ON_FINISH,
   /** An alternative to the system's at_exit. */
@@ -8659,6 +8663,8 @@ struct fio_protocol_s {
 
 Each connection object has its own personal environment storage that allows it to get / set named objects that are linked to the connection's lifetime.
 
+**Note**: the Environment functions are designed to be **thread safe**. However, when using the Environment associated with a specific IO object, the code must hold a valid reference to the IO object ([`fio_dup`](#fio_dup) / [`fio_undup`](#fio_undup))
+
 #### `fio_env_get`
 
 ```c
@@ -8668,7 +8674,7 @@ void *fio_env_get(fio_s *io, fio_env_get_args_s);
 
 Returns the named `udata` associated with the IO object. Returns `NULL` both if no named object is found or it's `udata` was set to `NULL`.
 
-If the `io` is NULL, the global environment will be used (see `fio_env_set`).
+If the `io` is `NULL`, the global environment will be used (see `fio_env_set`).
 
 The function is shadowed by the helper MACRO that allows the function to be called using named arguments:
 
@@ -8689,7 +8695,7 @@ void fio_env_set(fio_s *io, fio_env_set_args_s);
 
 Links an object to a connection's lifetime, calling the `on_close` callback once the connection has died.
 
-If the `io` is NULL, the value will be set for the global environment, in which case the `on_close` callback will only be called once the process exits.
+If the `io` is `NULL`, the value will be set for the global environment, in which case the `on_close` callback will only be called once the process exits.
 
 The function is shadowed by the helper MACRO that allows the function to be called using named arguments:
 
